@@ -61,6 +61,16 @@ class ChatSession(async_chat) :
       return True
     return False
 
+  def updateNames(self):
+    """
+    Do_who - show the online clients
+    command format - /who
+    """
+    self.server.broadcast(self, 'UPDATE NAMES\r\n')
+    for name in self.server.names:
+      self.server.broadcast(self, name+'\r\n')
+    self.server.broadcast(self, 'UPDATE NAMES OVER\r\n')
+
   def processCommand(self, line):
     """
     ProcessCommand - process the command
@@ -72,17 +82,6 @@ class ChatSession(async_chat) :
       """
       self.server.broadcast(self,'%s is logout %s\r\n' % \
                            (self.nickname,msg))
-
-    def do_who(self):
-      """
-      Do_who - show the online clients
-      command format - /who
-      """
-      self.push('='*30+'\r\n')
-      self.push('Online client as follows : \r\n')
-      for name in self.server.names:
-        self.push(name+'\r\n')
-      self.push('='*30+'\r\n')
 
     def do_privateChat(self, name, msg):
       """
@@ -104,7 +103,8 @@ class ChatSession(async_chat) :
 
       for session in self.server.sessions:
         if name == session.nickname:
-          session.push(line+'\r\n')
+          session.push(line)
+
 
     def do_file(self, msg):
       """
@@ -129,7 +129,7 @@ class ChatSession(async_chat) :
           self.push('%s is not exist\r\n' % fileName)
           return 
 
-        sendLine(self, recvName, 'A FILE WILL BE SEND')
+        sendLine(self, recvName, 'A FILE WILL BE SEND\r\n')
         sendLine(self, recvName, 'filename %s' % fileName)
 
         fd = open(fileName, 'r')
@@ -157,7 +157,7 @@ class ChatSession(async_chat) :
     if command == 'exit':
       do_exit(self, msg)
     elif command == 'who':
-      do_who(self)
+      self.updateNames()
     elif command == 'file':
       do_file(self, msg)
     elif command in self.server.names:
@@ -183,14 +183,17 @@ class ChatSession(async_chat) :
     else :  
       self.data = []
       message = "<%s> %s" % (self.nickname , line)
-      self.server.broadcast(self, message)
+      self.server.broadcast(self, message+'\r\n')
       print message
 
   def handle_close(self):
     async_chat.handle_close(self)
-    try: del self.server.names[self.server.names.index(self.nickname)] 
+    try:
+      del self.server.names[self.server.names.index(self.nickname)] 
     except: pass
     self.server.disconnect(self)
+    self.updateNames()
+
 
 class ChatServer(dispatcher): 
   """
@@ -217,8 +220,7 @@ class ChatServer(dispatcher):
 
   def broadcast(self, client, line):
     for session in self.sessions:
-      if session != client:
-        session.push(line+'\r\n')
+      session.push(line)
 
 if __name__ == '__main__':
   server = ChatServer(PORT)

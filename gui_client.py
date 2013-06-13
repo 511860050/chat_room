@@ -8,11 +8,10 @@
 #============================================
 
 from Tkinter import *
-import tkFont
-import chat_client
 import socket
 import sys
 import re
+import os
 from threading import Thread
 
 #======================================================
@@ -29,22 +28,47 @@ class SocketInput(Thread):
   def run(self):
     while True:
       inputText = self.client.readFd.readline().strip()
-      print 'server :', inputText
-      if inputText == 'A FILE WILL BE SEND\r\n':
-        print 'A file will be send'
-        print '---------Receive File Begin-------------'
+      if inputText == 'A FILE WILL BE SEND':
+        self.client.outputWidget.insert('end','A file will be send\n')
+        self.client.outputWidget.insert('end', \
+'---------Receive File Begin-------------\n')
         self.receiveFile()
-        print '----------Receive File Over-------------'
+        self.client.outputWidget.insert('end', \
+'----------Receive File Over-------------\n')
       elif inputText == 'UPDATE NAMES':
         self.updateNames()  
       elif re.search(r'Your nickname is [a-zA-Z]+', inputText):
         self.client.nickname=re.search(r'Your nickname is ([a-zA-Z]+)',
                                        inputText).group(1)
         self.client.outputWidget.insert('end', inputText+'\n')
+        self.client.outputWidget.see('end')
         self.client.updateNames()
       else:
         print inputText.strip()
         self.client.outputWidget.insert('end', inputText+'\n')
+        self.client.outputWidget.see('end')
+
+  def receiveFile(self):
+    """
+    ReceiveFile - receive the file from other client
+    """
+    #receive filename
+    inputText = self.client.readFd.readline()
+    parts = inputText.split(' ')
+    print 'parts : ', parts
+    if parts[0] == 'filename' :
+      fileName = os.path.split(parts[1])[1]
+    else:
+      print 'Error in receive fileName'
+      return
+    #receive file 
+    fd = open(fileName.strip(), 'w')
+    while True:
+      inputText = self.client.readFd.readline().strip()
+      if inputText != 'SEND FILE OVER':
+        fd.write(inputText+'\r\n')
+      else: break
+    fd.close()
 
   def updateNames(self):
     self.client.userList.delete('0.0', 'end') #clear the userList
@@ -54,28 +78,7 @@ class SocketInput(Thread):
         self.client.userList.insert('end', inputText+'\n')
       else : break
 
-  def receiveFile(self):
-    """
-    ReceiveFile - receive the file from other client
-    """
-    inputText = self.client.readFd.readline()
-    parts = inputText.split(' ')
-    if parts[0] == 'filename' :
-      fileName = os.path.split(parts[1])[1]
-    else:
-      print 'Error in receive fileName'
-      return
-    
-    fd = open(fileName.strip(), 'w')
-    while True:
-      inputText = self.client.readFd.readline()
-      if inputText != 'SEND FILE OVER\r\n':
-        fd.write(inputText.strip()+'\r\n')
-      else:
-        break
-    fd.close()
-
-#=======================================================
+ #=======================================================
 class ChatClient:
   """
   Chat_Client - build the connection to Chat_Server
@@ -104,32 +107,32 @@ class ChatClient:
     def enterCallback(event):
       self.standardInput()
 
-    frame_1 = Frame(self.root, width=400, height=400, bg='green')
-    frame_1.propagate(False)
-    frame_1.pack(side='left')
-    #output text frame
-    textFrame = Frame(frame_1, width=400, height=340, bg='red')
+    leftFrame = Frame(self.root, width=400, height=400, bg='green')
+    leftFrame.propagate(False)
+    leftFrame.pack(side='left')
+    #output Text
+    textFrame = Frame(leftFrame, width=400, height=340, bg='red')
     textFrame.propagate(False)
     textFrame.pack()
-    #output Text
+
     self.outputWidget = Text(textFrame)
-    self.outputWidget.pack(expand='yes', fill='both', pady=4)
+    self.outputWidget.pack(expand='yes', fill='both')
     #input Entry
-    self.inputWidget = Entry(frame_1, textvariable=self.inputText,
+    self.inputWidget = Entry(leftFrame, textvariable=self.inputText,
                               width=55, takefocus=0)
     self.inputWidget.bind('<KeyPress-Return>', enterCallback)
     self.inputWidget.focus_set()
     self.inputWidget.pack(fill='x', pady=2)
-    #Enter to send the message
-    self.enterButton =Button(frame_1, text='Enter',
+    #Enter button
+    self.enterButton =Button(leftFrame, text='Enter',
                              command=(lambda:self.standardInput()))
     self.enterButton.pack(anchor='se', expand='yes', fill='y')
-    #user list frame
-    frame_2 = Frame(self.root, width=100, height=400, bg='yellow')
-    frame_2.propagate(False)
-    frame_2.pack(side='left', padx=4)
     #user list
-    self.userList = Text(frame_2, bg='yellow', fg='red')
+    rightFrame = Frame(self.root, width=100, height=400, bg='yellow')
+    rightFrame.propagate(False)
+    rightFrame.pack(side='left', padx=4)
+
+    self.userList = Text(rightFrame, bg='yellow', fg='red')
     self.userList.pack(expand='yes', fill='both')
 
   def standardInput(self):

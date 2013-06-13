@@ -98,13 +98,12 @@ class ChatSession(async_chat) :
       SendLine - send line to the pointed client
       """
       if name not in self.server.names:
-        self.push('%s not exist' % name)
+        self.push('%s not exist\r\n' % name)
         return
 
       for session in self.server.sessions:
         if name == session.nickname:
-          session.push(line)
-
+          session.push(line+'\r\n')
 
     def do_file(self, msg):
       """
@@ -129,7 +128,7 @@ class ChatSession(async_chat) :
           self.push('%s is not exist\r\n' % fileName)
           return 
 
-        sendLine(self, recvName, 'A FILE WILL BE SEND\r\n')
+        sendLine(self, recvName, 'A FILE WILL BE SEND')
         sendLine(self, recvName, 'filename %s' % fileName)
 
         fd = open(fileName, 'r')
@@ -142,9 +141,9 @@ class ChatSession(async_chat) :
             break
         sendLine(self, recvName, 'SEND FILE OVER')
         fd.close()
-        self.push('----------Send File Over-----------\r\n')
+        self.push('-----------Send File Over-----------\r\n')
       else:
-        self.push('%s is not in the list\r\n' % nickname)
+        self.push('%s is not in the list\r\n' % self.nickname)
 
        #---------------------------------------------------
     parts = line.strip().split(' ', 1)

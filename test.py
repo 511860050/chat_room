@@ -16,10 +16,21 @@ frame_1.pack(side=LEFT)
 
 text_frame = Frame(frame_1, width=400, height=340, bg='red')
 text_frame.propagate(False)
-text_frame.pack()
+text_frame.pack(side=TOP)
 
 text = Text(text_frame)
-text.pack(expand='yes', fill='both', pady=4)
+text.pack()
+
+scrollX = Scrollbar(text_frame, orient='horizontal')
+scrollX.pack()
+
+scrollY = Scrollbar(text_frame, orient='vertical')
+scrollY.pack()
+
+#text['xscrollcommand'] = scrollX.set
+#text['yscrollcommand'] = scrollY.set
+
+
 
 entry = Entry(frame_1)
 entry.pack(fill='x', pady=2)

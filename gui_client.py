@@ -24,52 +24,66 @@ class SocketInput(Thread):
     Thread.__init__(self)
     self.setDaemon(self)
     self.client = client
+    self.fileNumber = 0
   
   def run(self):
     while True:
       inputText = self.client.readFd.readline().strip()
-      if inputText == 'A FILE WILL BE SEND':
-        self.client.outputWidget.insert('end','A file will be send\n')
-        self.client.outputWidget.insert('end', \
-'---------Receive File Begin-------------\n')
-        self.receiveFile()
-        self.client.outputWidget.insert('end', \
-'----------Receive File Over-------------\n')
+      prefix = inputText.split(' ', 1)[0]
+      if prefix == 'SENDFILE':
+        toAddress, fileName = inputText.split(' ')[1:3]
+        self.show('Send File Begin\n')
+        self.sendFile(toAddress, fileName)
+        self.show('Send File Over\n')
+      elif prefix == 'RECEIVEFILE':
+        self.show('Receive File Begin\n')
+        self.recvFile()
+        self.show('Receive File Over\n')
       elif inputText == 'UPDATE NAMES':
         self.updateNames()  
       elif re.search(r'Your nickname is [a-zA-Z]+', inputText):
         self.client.nickname=re.search(r'Your nickname is ([a-zA-Z]+)',
                                        inputText).group(1)
-        self.client.outputWidget.insert('end', inputText+'\n')
-        self.client.outputWidget.see('end')
+        self.show(inputText+'\n')
         self.client.updateNames()
       else:
-        print inputText.strip()
-        self.client.outputWidget.insert('end', inputText+'\n')
-        self.client.outputWidget.see('end')
+        self.show(inputText+'\n')
 
-  def receiveFile(self):
-    """
-    ReceiveFile - receive the file from other client
-    """
-    #receive filename
-    inputText = self.client.readFd.readline()
-    parts = inputText.split(' ')
-    print 'parts : ', parts
-    if parts[0] == 'filename' :
-      fileName = os.path.split(parts[1])[1]
-    else:
-      print 'Error in receive fileName'
+  def sendFile(self, toAddress, fileName):
+    try:
+      fd = open(fileName, 'rb')
+    except:
+      self.show('Error in open %s\n' % fileName)
       return
-    #receive file 
-    fd = open(fileName.strip(), 'w')
+
     while True:
-      inputText = self.client.readFd.readline().strip()
-      if inputText != 'SEND FILE OVER':
-        fd.write(inputText+'\r\n')
+      line = fd.readline()
+      if line:
+        message = "/%s %s" % (toAddress, line)
+        self.client.writeFd.write(message)
+      else: break
+    message = "/%s %s\n" % (toAddress, 'SENDFILEOVER')
+    self.client.writeFd.write(message)
+
+  def recvFile(self):
+    fd = open(str(self.fileNumber), 'wb')
+    self.fileNumber = self.fileNumber+1
+    firstFlag = False
+    while True:
+      line = self.client.readFd.readline()
+      if not firstFlag: #the first line is a empty unuse line
+        firstFlag = True
+        continue
+      try:
+        line = line.split(' ', 1)[1]
+      except:
+        line = '\n'
+      if line != 'SENDFILEOVER\n':
+        print 'recvFile', line
+        fd.write(line)
       else: break
     fd.close()
-
+    
   def updateNames(self):
     self.client.userList.delete('0.0', 'end') #clear the userList
     while True:
@@ -77,6 +91,10 @@ class SocketInput(Thread):
       if inputText != 'UPDATE NAMES OVER':
         self.client.userList.insert('end', inputText+'\n')
       else : break
+
+  def show(self, message):
+    self.client.outputWidget.insert('end', message)
+    self.client.outputWidget.see('end')
 
  #=======================================================
 class ChatClient:
@@ -138,14 +156,14 @@ class ChatClient:
   def standardInput(self):
     inputText = self.inputText.get().strip()
     if inputText:
-      self.writeFd.write(inputText+'\r\n')
+      self.writeFd.write(inputText+'\n')
     self.inputText.set('')
 
   def updateNames(self):
     """
     UpdateNames - send '/who' to server, and severve the names
     """
-    self.writeFd.write('/who\r\n')
+    self.writeFd.write('/who\n')
     
   def run(self):
     """

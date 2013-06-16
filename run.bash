@@ -6,4 +6,4 @@
 #Usage: run the chat_client
 #============================================
 
-./gui_client.py 10.12.11.241 13000
+./gui_client.py

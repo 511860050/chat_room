@@ -76,7 +76,8 @@ class CommandHandler():
     fileName = parts[1]
 
     self.session.push('SENDFILE %s %s\n' % (toAddress, fileName))
-    self.sendLine(toAddress, 'RECEIVEFILE %s\n' % fileName)
+    self.sendLine(toAddress, 'RECEIVEFILE %s %s\n' % 
+                  (self.session.nickname, fileName))
 
   def updateNames(self):
     """

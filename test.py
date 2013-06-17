@@ -6,16 +6,40 @@
 #Author: chenhuan
 #============================================
 
-import re
+from Tkinter import *
+import tkFileDialog
 
-def fuck(line):
-  endPattern = re.compile(r'SENDFILEOVER\n$')
-  if not endPattern.search(line):
-    print 'recvFile: ', line
-  else: 
-    if line == 'SENDFILEOVER\n': 
-      pass
-    else:
-      otherPart = re.compile(r'(.+)SENDFILEOVER\n$')
-      line = otherPart.match(line).group(1)
-      print 'recvFile: ', line
+#=======================================================
+class Gui():
+  """
+  recvnamegui - read the recvname to send the file to
+  """
+  def __init__(self, root):
+    self.root = root
+    self.recvName = StringVar()
+
+    b = Button(root, text='Enter', command=lambda:self.func())
+    b.pack()
+
+    self.top = Toplevel(self.root)
+
+    label = Label(self.top, text='receiver\'s name')
+    label.pack()
+
+    entry = Entry(self.top, textvariable=self.recvName)
+    entry.pack()
+
+    button = Button(self.top, text='enter', 
+                    command=lambda:self.callback())
+    button.pack()
+
+  def func(self):
+    print self.recvName.get()
+
+  def callback(self):
+    self.recvName.get()
+    self.top.destroy()
+
+root = Tk()
+gui = Gui(root)
+root.mainloop()

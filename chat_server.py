@@ -76,6 +76,8 @@ class CommandHandler():
     fileName = parts[1]
 
     self.session.push('SENDFILE %s %s\n' % (toAddress, fileName))
+
+    fileName = os.path.split(fileName)[1]
     self.sendLine(toAddress, 'RECEIVEFILE %s %s\n' % 
                   (self.session.nickname, fileName))
 
@@ -143,6 +145,7 @@ class ChatSession(async_chat) :
   
   def found_terminator(self):
     line = ''.join(self.data)
+    print 'raw: ', line
 
     if self.isNickname():  #process nickname
       self.getNickname(line)

@@ -9,6 +9,7 @@
 
 from Tkinter import *
 import tkMessageBox
+import tkFileDialog
 import socket
 import sys
 import re
@@ -17,7 +18,6 @@ from threading import Thread
 
 def errorMessage(errorInfo):
   tkMessageBox.showerror(message=errorInfo)
-  
 
 #======================================================
 class SocketInput(Thread):
@@ -64,7 +64,6 @@ class SocketInput(Thread):
     Return False = receive 'NO'
     """
     line = self.client.readFd.readline().strip()
-    print 'isSendFile:', line
     try:
       name,line = line.split(' ', 1)
     except: line = ''
@@ -76,11 +75,9 @@ class SocketInput(Thread):
     msg ='A file will be send from %s\n receive it or not?' % fromAddress
     recvFlag = tkMessageBox.askquestion(message=msg)
     if recvFlag == 'yes':
-      print 'ifRecvFile: yes'
       self.client.writeFd.write('/%s YES\n' % fromAddress)
       return True
     elif recvFlag == 'no':
-      print 'ifRecvFile: no'
       self.client.writeFd.write('/%s NO\n' % fromAddress)
       return False
 
@@ -141,16 +138,41 @@ class SocketInput(Thread):
     fd.close()
     
   def updateNames(self):
-    self.client.userList.delete('0.0', 'end') #clear the userList
+    userList = self.client.userList
+
+    userList.delete('0.0', 'end') #clear the userList
     while True:
       inputText = self.client.readFd.readline().strip() 
       if inputText != 'UPDATE NAMES OVER':
-        self.client.userList.insert('end', inputText+'\n')
+        if inputText == self.client.nickname:
+          #make my nickname differenct
+          begin = userList.index('insert')
+          userList.insert('end', inputText+'\n')
+          userList.see('end')
+          end = userList.index('insert')
+
+          userList.tag_add('myName', begin, end)
+          userList.tag_config('myName', background='blue')
+        else:
+          userList.insert('end', inputText+'\n')
       else : break
 
   def show(self, message):
-    self.client.outputWidget.insert('end', message)
-    self.client.outputWidget.see('end')
+    outputWidget = self.client.outputWidget
+
+    pattern = re.compile(r'^<.+>.*')
+    if pattern.match(message):
+      outputWidget.insert('end', message)
+      outputWidget.see('end')
+    else:
+      #set the system message to be 'red'
+      begin = outputWidget.index('insert')
+      outputWidget.insert('end', message)
+      outputWidget.see('end')
+      end = outputWidget.index('insert')
+
+      outputWidget.tag_add('systemMessage', begin, end)
+      outputWidget.tag_config('systemMessage', foreground='red')
 
 #=======================================================
 class LoginGui():
@@ -187,10 +209,10 @@ class LoginGui():
     addrEntry.pack(expand='yes')
 
     button = Button(widgetFrame, text='Log in', 
-                    command=lambda:self.buttonFunc())
+                    command=lambda:self.enterFunc())
     button.pack(expand='yes')
 
-  def buttonFunc(self):
+  def enterFunc(self):
     line = self.address.get().strip()
     parts = line.split(':')
     if re.match(r'^([0-9]{1,3}\.){3}[0-9]{1,3}$', parts[0].strip()):
@@ -215,7 +237,35 @@ class LoginGui():
       return
 
   def callback(self, event):
-    self.buttonFunc()
+    self.enterFunc()
+
+#=======================================================
+class SendFileGui(Toplevel):
+  """
+  RecvNameGui - read the recvName to send the file to
+  """
+  def __init__(self, chatClient, fileName):
+    Toplevel.__init__(self)
+
+    self.chatClient = chatClient
+    self.fileName = fileName
+    self.recvName = StringVar()
+
+    label = Label(self, text='Receiver\'s name')
+    label.pack()
+
+    entry = Entry(self, textvariable=self.recvName)
+    entry.pack()
+
+    button = Button(self, text='Enter', command=lambda:self.callback())
+    button.pack()
+
+  def callback(self):
+    print 'Here you are'
+    recvName = self.recvName.get()
+    self.chatClient.writeFd.write("/file %s %s\n" % 
+                                 (recvName, self.fileName))
+    self.destroy()
 
 #=======================================================
 class ChatGui(Frame):
@@ -231,14 +281,18 @@ class ChatGui(Frame):
     self.inputText = StringVar()
     self.createWidget()
 
-  def buttonFunc(self):
+  def fileFunc(self):
+    fileName = tkFileDialog.askopenfilename()
+    SendFileGui(self.chatClient, fileName)
+
+  def enterFunc(self):
     line = self.inputText.get().strip()
     if line:
       self.chatClient.writeFd.write(line+'\n')
     self.inputText.set('')
     
   def callback(self, event):
-    self.buttonFunc()
+    self.enterFunc()
       
   def createWidget(self):
     leftFrame = Frame(self, width=400, height=400, bg='green')
@@ -258,9 +312,13 @@ class ChatGui(Frame):
     inputWidget.focus_set()
     inputWidget.pack(fill='x', pady=2)
     #Enter button
-    enterButton =Button(leftFrame, text='Enter',
-                        command=(lambda: self.buttonFunc()))
-    enterButton.pack(anchor='se', expand='yes', fill='y')
+    enterButton = Button(leftFrame, text='Enter',
+                        command=(lambda: self.enterFunc()))
+    enterButton.pack(anchor='se', side='right', fill='y')
+    #File button
+    fileButton = Button(leftFrame, text='Send File',
+                        command=(lambda: self.fileFunc()))
+    fileButton.pack(anchor='sw', side='left', fill='y')
     #user list
     rightFrame = Frame(self, width=100, height=400, bg='yellow')
     rightFrame.propagate(False)
@@ -316,7 +374,6 @@ class ChatClient:
     UpdateNames - send '/who' to server, and severve the names
     """
     self.writeFd.write('/who\n')
-    
 
 #======================================================
 if __name__ == '__main__':

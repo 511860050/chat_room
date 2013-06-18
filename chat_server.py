@@ -145,7 +145,6 @@ class ChatSession(async_chat) :
   
   def found_terminator(self):
     line = ''.join(self.data)
-    print 'raw: ', line
 
     if self.isNickname():  #process nickname
       self.getNickname(line)

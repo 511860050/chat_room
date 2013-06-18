@@ -7,39 +7,33 @@
 #============================================
 
 from Tkinter import *
-import tkFileDialog
-
-#=======================================================
-class Gui():
-  """
-  recvnamegui - read the recvname to send the file to
-  """
-  def __init__(self, root):
-    self.root = root
-    self.recvName = StringVar()
-
-    b = Button(root, text='Enter', command=lambda:self.func())
-    b.pack()
-
-    self.top = Toplevel(self.root)
-
-    label = Label(self.top, text='receiver\'s name')
-    label.pack()
-
-    entry = Entry(self.top, textvariable=self.recvName)
-    entry.pack()
-
-    button = Button(self.top, text='enter', 
-                    command=lambda:self.callback())
-    button.pack()
-
-  def func(self):
-    print self.recvName.get()
-
-  def callback(self):
-    self.recvName.get()
-    self.top.destroy()
+import tkMessageBox
 
 root = Tk()
-gui = Gui(root)
+
+frame = Frame(root, width=200, height=100, bg='yellow')
+frame.propagate(False)
+frame.pack()
+
+valueLabel = StringVar()
+valueEntry = StringVar()
+
+def callback(event):
+   value = valueEntry.get()
+   print 'before:', type(value)
+   if str(type(value)) == "<type 'unicode'>" :
+     value = value.encode('utf-8')
+     print 'after:', type(value)
+   value = str(value)
+   valueLabel.set(value)
+   valueEntry.set('')
+
+label = Entry(frame, textvariable=valueLabel, bg='green')
+label.pack(expand='yes')
+
+entry = Entry(frame, textvariable=valueEntry)
+entry.bind('<Key-Return>', callback)
+entry.pack(expand='yes')
+
 root.mainloop()
+

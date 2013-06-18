@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python 
 # -*- coding: utf-8 -*-
 #============================================
 #FileName: client_gui.py
@@ -48,8 +48,8 @@ class SocketInput(Thread):
           self.show('Receive File Over\n')
       elif inputText == 'UPDATE NAMES':
         self.updateNames()  
-      elif re.search(r'Your nickname is [a-zA-Z]+', inputText):
-        self.client.nickname=re.search(r'Your nickname is ([a-zA-Z]+)',
+      elif re.search(r'Your nickname is .+', inputText):
+        self.client.nickname=re.search(r'Your nickname is (.+)',
                                        inputText).group(1)
         self.show(inputText+'\n')
         self.client.updateNames()
@@ -263,6 +263,9 @@ class SendFileGui(Toplevel):
   def callback(self):
     print 'Here you are'
     recvName = self.recvName.get()
+    #to process the Chinese
+    if str(type(recvName)) == "<type 'unicode'>":
+      recvName = recvName.encode('utf-8')
     self.chatClient.writeFd.write("/file %s %s\n" % 
                                  (recvName, self.fileName))
     self.destroy()
@@ -288,6 +291,9 @@ class ChatGui(Frame):
   def enterFunc(self):
     line = self.inputText.get().strip()
     if line:
+      #to process the Chinese
+      if str(type(line)) == "<type 'unicode'>":
+        line = line.encode('utf-8')
       self.chatClient.writeFd.write(line+'\n')
     self.inputText.set('')
     
